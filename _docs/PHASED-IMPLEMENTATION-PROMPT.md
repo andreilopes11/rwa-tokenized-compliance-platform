@@ -150,12 +150,12 @@ No mainnet deploy unless asked.
 
 ## Agent rules
 
-| Do | Don’t |
-|----|-------|
-| Read based_rules + FUNCTIONAL + TECHNICAL | Paste large unrelated code into docs |
-| Minimal diff; match style | Drive-by refactors |
-| Phase tests | Skip role / linkage tests |
-| Stop after each phase | Start next without confirmation |
-| English code/comments as repo | Commit secrets |
-| Use PasswordInput for passwords | Reintroduce MFA/invite UX without based_rules update |
-| Keep two roles only | Reintroduce COMPLIANCE_OFFICER / AUDITOR without based_rules update |
+| Do                                        | Don’t                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------- |
+| Read based_rules + FUNCTIONAL + TECHNICAL | Paste large unrelated code into docs                                |
+| Minimal diff; match style                 | Drive-by refactors                                                  |
+| Phase tests                               | Skip role / linkage tests                                           |
+| Stop after each phase                     | Start next without confirmation                                     |
+| English code/comments as repo             | Commit secrets                                                      |
+| Use PasswordInput for passwords           | Reintroduce MFA/invite UX without based_rules update                |
+| Keep two roles only                       | Reintroduce COMPLIANCE_OFFICER / AUDITOR without based_rules update |

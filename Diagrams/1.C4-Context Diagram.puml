@@ -1,0 +1,25 @@
+@startuml VaultGuard-C4-Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title VaultGuard RWA - C4 Context
+
+LAYOUT_WITH_LEGEND()
+
+Person(investor, "Investor", "Authenticated end user who submits KYC, views linked offerings, subscribes, redeems and transfers when compliant.")
+Person(admin, "Super Admin", "Manages own offerings, private access, KYC decisions, lifecycle, oracle recovery and audit.")
+
+System(vaultguard, "VaultGuard RWA", "Institutional marketplace for admin-created tokenized real-world asset offerings.")
+
+System_Ext(kyc, "KYC/AML Provider", "External identity, document and sanctions verification service.")
+System_Ext(blockchain, "EVM T-REX Network", "Permissioned ERC-3643 token suites; on-chain identity and transfer compliance are final.")
+System_Ext(wallet, "Investor Wallet", "Wallet used by the investor to sign an allowed transfer.")
+
+Rel(investor, vaultguard, "Uses dashboard; submits KYC; subscribes, redeems and transfers")
+Rel(admin, vaultguard, "Uses governance workspace; manages offerings, KYC and operations")
+Rel(vaultguard, kyc, "Requests KYC/AML verification through an adapter")
+Rel(vaultguard, blockchain, "Registers identities, deploys suites, mints, pauses and checks transfers")
+Rel(investor, wallet, "Signs transfer transaction")
+Rel(wallet, blockchain, "Submits signed transfer")
+
+SHOW_LEGEND()
+@enduml
