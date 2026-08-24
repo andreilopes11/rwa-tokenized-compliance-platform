@@ -1,0 +1,117 @@
+@startuml Transfer-Flow
+!theme plain
+title VaultGuard RWA - Token Transfer Flow with Preflight
+
+actor Investor
+participant "Frontend" as FE
+participant "BFF" as BFF
+participant "Backend API" as API
+participant "Blockchain" as Chain
+participant "T-REX Token" as Token
+participant "Identity Registry" as IR
+participant "Modular Compliance" as MC
+
+== Transfer Request ==
+
+Investor -> FE: Enter recipient + amount
+FE -> FE: Debounce (500ms)
+
+== Preflight Check (Advisory) ==
+
+FE -> BFF: POST /api/backend/assets/{id}/transfer/preflight
+activate BFF
+BFF -> API: POST /api/assets/{id}/transfer/preflight\n+ Bearer token\n+ X-Investor-Wallet
+activate API
+
+API -> API: Check sender KYC:\n- status=APPROVED\n- onChainVerified=true
+
+API -> API: Check recipient eligibility:\n- Registered wallet?\n- Compliance status?
+
+API -> Chain: staticcall canTransfer(sender, recipient, amount)
+activate Chain
+Chain -> IR: isVerified(sender)
+Chain -> IR: isVerified(recipient)
+Chain -> MC: Check compliance modules:\n- Pause state\n- Max balance\n- Transfer limits
+Chain --> API: true | false + reason
+deactivate Chain
+
+API --> BFF: Preflight result
+deactivate API
+BFF --> FE: Preflight result
+deactivate BFF
+
+alt Preflight Failed
+  FE -> Investor: Show error:\n- Recipient not compliant\n- Amount exceeds limit\n- Token paused\n- Wrong network
+  note right: Never prompt wallet\nsignature on failed preflight
+else Preflight Passed
+
+  == Final Refresh Before Signature ==
+
+  FE -> BFF: GET /api/backend/assets/{id}/transfer/preflight (refresh)
+  BFF -> API: Re-check (may have changed)
+  API -> Chain: staticcall canTransfer again
+  Chain --> API: Still valid
+  API --> BFF: Confirmed
+  BFF --> FE: Proceed
+
+  == Wallet Signature ==
+
+  FE -> Investor: Prompt MetaMask signature
+  Investor -> FE: Sign transaction
+
+  FE -> Chain: Send signed tx to RPC
+  activate Chain
+
+  == On-Chain Execution (Final Authority) ==
+
+  Chain -> Token: transfer(recipient, amount)
+  activate Token
+  Token -> MC: canTransfer(sender, recipient, amount)
+  activate MC
+  MC -> IR: isVerified(sender)
+  MC -> IR: isVerified(recipient)
+  MC -> MC: Check all modules
+  MC --> Token: true | revert
+  deactivate MC
+
+  alt On-Chain Check Passes
+    Token -> Token: Update balances
+    Token --> Chain: Transfer success
+    deactivate Token
+    Chain --> FE: Receipt + confirmation
+    deactivate Chain
+    FE -> Investor: ✅ Transfer complete
+
+    FE -> BFF: Log transaction (optional)
+    BFF -> API: POST /api/audit/transaction
+    API -> API: Record audit event
+
+  else On-Chain Check Fails
+    Token --> Chain: Revert with reason
+    deactivate Token
+    Chain --> FE: Transaction failed
+    deactivate Chain
+    FE -> Investor: ❌ Transfer rejected:\n- Recipient lost compliance\n- Token was paused\n- Compliance rule changed
+  end
+
+end
+
+note over FE, Chain
+Key Principles:
+- Preflight is advisory
+- Refresh before signature
+- On-chain hooks are final
+- Never skip preflight
+- Show clear error messages
+end note
+
+@enduml
+</ADR>
+```
+
+Agora vou atualizar o README do Diagrams para incluir os novos diagramas:
+
+```tool
+TOOL_NAME: multi_edit
+BEGIN_ARG: filepath
+"rwa-tokenized-compliance-platform\\Diagrams\\README.md"

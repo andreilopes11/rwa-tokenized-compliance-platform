@@ -113,12 +113,31 @@ Full lists in deploy guides linked above.
 
 ## Documentation index
 
-Full specification:
+### Quick Start
+- **Executive Summary**: [`EXECUTIVE-SUMMARY.md`](EXECUTIVE-SUMMARY.md) — High-level overview for stakeholders
+- **Quick Reference**: [`Execution Guide/8-quick-reference.md`](Execution%20Guide/8-quick-reference.md) — Essential commands and troubleshooting
 
-- Functional: [`_docs/FUNCTIONAL.md`](_docs/FUNCTIONAL.md)
-- Technical: [`_docs/TECHNICAL.md`](_docs/TECHNICAL.md)
-- Phased Implementation: [`_docs/PHASED-IMPLEMENTATION-PROMPT.md`](_docs/PHASED-IMPLEMENTATION-PROMPT.md)
-- Index: [`_docs/README.md`](_docs/README.md)
+### Core Specifications
+- **Foundation Rules**: [`_docs/based_rules.md`](_docs/based_rules.md) — Normative foundation (SEC, FUN, UI, TEC)
+- **Functional Spec**: [`_docs/FUNCTIONAL.md`](_docs/FUNCTIONAL.md) — Product and business rules
+- **Technical Spec**: [`_docs/TECHNICAL.md`](_docs/TECHNICAL.md) — Implementation specifications
+- **Phased Implementation**: [`_docs/PHASED-IMPLEMENTATION-PROMPT.md`](_docs/PHASED-IMPLEMENTATION-PROMPT.md) — Development phases
+- **Docs Index**: [`_docs/README.md`](_docs/README.md)
+
+### Architecture
+- **ADRs**: [`ADRs/`](ADRs/) — Architecture decision records (13 decisions documented)
+- **Diagrams**: [`Diagrams/`](Diagrams/) — PlantUML C4 diagrams (7 diagrams: context, container, component, state machines, deployment)
+
+### Operational Guides
+- **Execution Guide**: [`Execution Guide/`](Execution%20Guide/) — Complete operational documentation
+  - Local development setup
+  - Development workflow
+  - Testing guide
+  - Deployment procedures
+  - Operational runbooks
+  - Troubleshooting guide
+  - Monitoring and alerting
+  - Quick reference
 
 ## Source of truth
 

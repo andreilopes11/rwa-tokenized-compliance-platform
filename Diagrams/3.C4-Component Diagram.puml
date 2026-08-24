@@ -3,31 +3,31 @@
 
 title VaultGuard RWA - C4 Component
 
-Person(investor, "Investor", "Authenticated investor")
-Person(admin, "Super Admin", "Authenticated administrator")
+Person(investor, "Investor", "Authenticated investor - owns KYC and portfolio")
+Person(superAdmin, "Super Admin", "Authenticated administrator - manages created_by offerings")
 System_Ext(kyc, "KYC/AML Provider", "External verification")
 System_Ext(chain, "EVM T-REX Network", "Permissioned blockchain")
 
 Container_Boundary(bff, "Next.js BFF") {
-    Component(routeGuard, "Role Path Guard", "BFF middleware", "Allows only dashboard or governance paths for the session role.")
+    Component(routeGuard, "Role Path Guard", "BFF middleware", "Enforces role-route matrix: INVESTOR → /dashboard; SUPER_ADMIN → /governance. Early deny before backend.")
     Component(proxy, "Backend Proxy", "Route handler", "Forwards Bearer, tenant and wallet context; removes linkage probes.")
 }
 
 Container_Boundary(backend, "Spring Boot API") {
     Component(auth, "Authentication and Tenant Context", "JWT + refresh", "Resolves role, scopes, tenant and authenticated wallet.")
-    Component(interceptor, "API Authorization Interceptor", "Security filter", "Default-deny role and scope matrix for every API route.")
-    Component(marketplace, "Marketplace and Linkage Service", "Service", "Applies PUBLIC/PRIVATE visibility, created_by and contracted/invited linkage.")
-    Component(kycService, "KYC and Compliance Service", "Service", "Own-document access, approval states, sanctions adapter and chain gating.")
+    Component(interceptor, "API Authorization Interceptor", "Security filter", "Default-deny authorization: validates role + scope + tenant + ownership + contract linkage on every protected route. Retargets admin/compliance/audit routes to SUPER_ADMIN.")
+    Component(marketplace, "Marketplace and Linkage Service", "Service", "Enforces contract linkage: SUPER_ADMIN sees only created_by offerings; INVESTOR sees PUBLIC + invited + contracted. Validates linkage on catalog queries and subscribe/redeem operations.")
+    Component(kycService, "KYC and Compliance Service", "Service", "Manages KYC state machine (SUBMITTED → APPROVED_PENDING_CHAIN → APPROVED with onChainVerified). SUPER_ADMIN approves; investor never self-approves. Document encryption and hash storage; sanctions adapter integration.")
     Component(lifecycle, "Offering and Lifecycle Service", "Service", "Creates, publishes, pauses, closes, subscribes and redeems scoped offerings.")
-    Component(oracle, "Oracle and ForceSync Service", "Service + worker", "Bounded retry, four-eyes approval and chain-write state transitions.")
+    Component(oracle, "Oracle and ForceSync Service", "Service + worker", "Bounded retry with exponential backoff for identity registration. ForceSync four-eyes: admin A initiates, admin B ≠ A approves. Transitions to FAILED_ON_CHAIN on retry exhaustion. HSM/KMS-ready signer.")
     Component(preflight, "Transfer Preflight Service", "Service", "Advisory canTransfer check; refreshes before wallet signature.")
     Component(audit, "Append-only Audit Service", "Service", "Records privileged actions, denied access and blockchain transactions.")
     Component(persistence, "Tenant-scoped Persistence", "JDBC repositories", "Persists PII references, offerings, ACLs, audit and transaction records.")
     Component(gateway, "Blockchain Gateway", "Gateway + TransactionSigner", "Reads T-REX state and submits receipt-tracked transactions without end-user keys.")
 }
 
-Rel(investor, routeGuard, "Uses dashboard")
-Rel(admin, routeGuard, "Uses governance")
+Rel(investor, routeGuard, "Accesses /dashboard routes")
+Rel(superAdmin, routeGuard, "Accesses /governance routes")
 Rel(routeGuard, proxy, "Passes allowed request")
 Rel(proxy, auth, "Provides JWT and request context")
 Rel(proxy, interceptor, "Calls protected API")

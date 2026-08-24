@@ -5,8 +5,8 @@ title VaultGuard RWA - C4 Context
 
 LAYOUT_WITH_LEGEND()
 
-Person(investor, "Investor", "Authenticated end user who submits KYC, views linked offerings, subscribes, redeems and transfers when compliant.")
-Person(admin, "Super Admin", "Manages own offerings, private access, KYC decisions, lifecycle, oracle recovery and audit.")
+Person(investor, "Investor", "Authenticated end user who submits KYC, views linked offerings (public + invited + contracted), subscribes, redeems and transfers when compliant.")
+Person(superAdmin, "Super Admin", "Creates and manages own offerings (created_by scope), grants private access, approves KYC, manages lifecycle, oracle recovery and audit. Consolidates former admin/compliance/auditor roles.")
 
 System(vaultguard, "VaultGuard RWA", "Institutional marketplace for admin-created tokenized real-world asset offerings.")
 
@@ -14,8 +14,8 @@ System_Ext(kyc, "KYC/AML Provider", "External identity, document and sanctions v
 System_Ext(blockchain, "EVM T-REX Network", "Permissioned ERC-3643 token suites; on-chain identity and transfer compliance are final.")
 System_Ext(wallet, "Investor Wallet", "Wallet used by the investor to sign an allowed transfer.")
 
-Rel(investor, vaultguard, "Uses dashboard; submits KYC; subscribes, redeems and transfers")
-Rel(admin, vaultguard, "Uses governance workspace; manages offerings, KYC and operations")
+Rel(investor, vaultguard, "Uses /dashboard workspace; submits KYC; browses linked marketplace; subscribes, redeems and transfers")
+Rel(superAdmin, vaultguard, "Uses /governance workspace; manages own offerings, private invites, KYC decisions, lifecycle approvals, ForceSync and audit")
 Rel(vaultguard, kyc, "Requests KYC/AML verification through an adapter")
 Rel(vaultguard, blockchain, "Registers identities, deploys suites, mints, pauses and checks transfers")
 Rel(investor, wallet, "Signs transfer transaction")

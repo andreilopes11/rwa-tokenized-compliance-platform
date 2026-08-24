@@ -3,22 +3,22 @@
 
 title VaultGuard RWA - C4 Container
 
-Person(investor, "Investor", "End user")
-Person(admin, "Super Admin", "Offering and compliance administrator")
+Person(investor, "Investor", "End user - portfolio and marketplace access")
+Person(superAdmin, "Super Admin", "Administrator - manages own offerings, KYC, lifecycle, audit")
 System_Ext(kyc, "KYC/AML Provider", "External verification")
 System_Ext(chain, "EVM T-REX Network", "Permissioned blockchain")
 System_Ext(wallet, "Investor Wallet", "Transfer signer")
 
 System_Boundary(vaultguard, "VaultGuard RWA") {
-	Container(web, "Next.js Workspaces + BFF", "Next.js, App Router", "Role-based /dashboard and /governance workspaces; HttpOnly JWT boundary; wallet and tenant headers.")
-	Container(api, "Spring Boot API", "Java, Spring Boot, com.rwa", "Authorization, KYC, marketplace linkage, lifecycle, preflight, audit and governance services.")
+	Container(web, "Next.js Workspaces + BFF", "Next.js, App Router", "Two workspaces: /dashboard (INVESTOR) and /governance (SUPER_ADMIN); HttpOnly JWT cookies; BFF adds Bearer + X-Investor-Wallet + X-Tenant-Id headers; strips linkage probes.")
+	Container(api, "Spring Boot API", "Java, Spring Boot, com.rwa", "Two-role RBAC (SUPER_ADMIN + INVESTOR); default-deny authorization with role + scope + ownership + contract linkage; KYC, marketplace, lifecycle, preflight, audit services.")
 	ContainerDb(db, "PostgreSQL", "PostgreSQL", "Tenant-scoped offerings, identities, encrypted document references, ACLs, audit events and chain transactions.")
 	Container(worker, "Oracle and Recovery Worker", "Spring worker", "Bounded retry from off-chain approval to IdentityRegistry; ForceSync four-eyes workflow.")
 	Container(gateway, "Blockchain Gateway", "Java Web3 + TransactionSigner", "Per-offering T-REX address resolution, staticcall preflight and receipt-confirmed transactions.")
 }
 
-Rel(investor, web, "Uses dashboard")
-Rel(admin, web, "Uses governance")
+Rel(investor, web, "Uses /dashboard workspace")
+Rel(superAdmin, web, "Uses /governance workspace")
 Rel(web, api, "Calls BFF routes over HTTPS")
 Rel(api, db, "Reads and writes scoped data")
 Rel(api, kyc, "Uses KYC adapter")

@@ -1,0 +1,120 @@
+@startuml Deployment-Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Deployment.puml
+
+title VaultGuard RWA - Production Deployment Architecture
+
+Deployment_Node(browser, "Browser", "Chrome, Firefox, Safari") {
+  Container(webapp, "Web Application", "React SPA", "Investor dashboard and admin governance workspaces")
+  Container(wallet_ext, "Wallet Extension", "MetaMask, etc", "Signs transfer transactions")
+}
+
+Deployment_Node(vercel, "Vercel", "Edge + Serverless") {
+  Deployment_Node(vercel_edge, "Edge Network", "CDN") {
+    Container(nextjs, "Next.js App", "Next.js 14+", "SSR + BFF proxy")
+  }
+
+  note right of nextjs
+    Environment:
+    - BACKEND_API_BASE_URL (EB origin)
+    - NEXT_PUBLIC_CHAIN_ID=11155111
+    - NEXT_PUBLIC_RPC_URL
+    - NEXT_PUBLIC_IR/TOKEN addresses
+
+    Security:
+    - No signing keys
+    - HttpOnly JWT cookies
+    - Role-route matrix
+    - Strips linkage probes
+  end note
+}
+
+Deployment_Node(aws, "AWS", "us-east-1") {
+  Deployment_Node(eb, "Elastic Beanstalk", "Java Platform") {
+    Container(springboot, "Spring Boot API", "Java 21", "com.rwa package")
+    Container(oracle_worker, "Oracle Worker", "Background task", "Identity sync + retry")
+  }
+
+  Deployment_Node(secrets, "Secrets Manager", "AWS Service") {
+    ContainerDb(secrets_store, "Secrets", "Encrypted", "JWT keys, encryption keys, RPC URLs")
+  }
+
+  note right of springboot
+    Profile: production
+
+    Environment:
+    - SPRING_PROFILES_ACTIVE=production
+    - SPRING_DATASOURCE_* (Neon)
+    - CORS_ALLOWED_ORIGINS (Vercel)
+    - RPC_URL / CHAIN_ID=11155111
+    - APP_BLOCKCHAIN_*_ADDRESS
+    - APP_BLOCKCHAIN_ADMIN_PRIVATE_KEY
+    - APP_AUTH_JWT_SECRET
+    - APP_DOCUMENTS_ENCRYPTION_KEY
+
+    Security:
+    - Swagger OFF
+    - Legacy admin token OFF
+    - KMS signer required for mainnet
+  end note
+}
+
+Deployment_Node(neon, "Neon", "Serverless Postgres") {
+  ContainerDb(postgres, "PostgreSQL", "PostgreSQL 15", "Tenant data, KYC, audit")
+
+  note right of postgres
+    Tables:
+    - users (roles, tenants)
+    - asset_offerings (created_by, visibility)
+    - kyc_requests (status, onChainVerified)
+    - marketplace_acl (invites)
+    - audit_events
+    - blockchain_transactions
+
+    Security:
+    - TLS required
+    - Rotate password before go-live
+    - Connection pooling
+  end note
+}
+
+Deployment_Node(sepolia, "Sepolia Testnet", "Ethereum L1 Test") {
+  Container(identity_registry, "IdentityRegistry", "Solidity", "Shared across offerings")
+  Container(token_suite, "Token Suites", "T-REX per offering", "Token + ModularCompliance")
+
+  note right of identity_registry
+    Shared IdentityRegistry:
+    - registerIdentity(wallet, hash, country)
+    - deleteIdentity(wallet)
+    - isVerified(wallet)
+
+    Per-offering suite:
+    - Token (ERC-3643)
+    - ModularCompliance
+    - Modules (pause, limits, etc)
+
+    Deployed via:
+    npm run deploy:sepolia
+  end note
+}
+
+Deployment_Node(alchemy, "Alchemy", "RPC Provider") {
+  Container(rpc, "Sepolia RPC", "JSON-RPC", "Transaction relay")
+}
+
+Deployment_Node(kyc_provider, "KYC Provider", "External SaaS") {
+  Container(kyc_api, "KYC/AML API", "REST", "Document verification, sanctions")
+}
+
+Rel(webapp, nextjs, "HTTPS", "Cookie-based auth")
+Rel(wallet_ext, sepolia, "JSON-RPC", "Submit signed tx")
+Rel(nextjs, springboot, "HTTPS", "Bearer + headers")
+Rel(springboot, secrets_store, "Read", "Secrets")
+Rel(springboot, postgres, "JDBC", "TLS")
+Rel(springboot, kyc_api, "HTTPS", "Verify identity")
+Rel(oracle_worker, rpc, "HTTPS", "Write identity")
+Rel(springboot, rpc, "HTTPS", "Preflight, mint, pause")
+Rel(rpc, sepolia, "P2P", "Broadcast tx")
+
+LAYOUT_WITH_LEGEND()
+
+@enduml

@@ -1,0 +1,149 @@
+@startuml Contract-Linkage-Model
+!theme plain
+title VaultGuard RWA - Contract Linkage Model
+
+skinparam rectangle {
+  BackgroundColor<<admin>> LightBlue
+  BackgroundColor<<investor>> LightGreen
+  BackgroundColor<<public>> PaleGreen
+  BackgroundColor<<private>> LightYellow
+}
+
+package "Contract Linkage Rules" {
+  rectangle "SUPER_ADMIN" <<admin>> {
+    rectangle "created_by = admin_id" as admin_link
+    note right of admin_link
+      Admin sees ONLY contracts
+      where created_by matches
+      their user ID
+
+      Enforced in:
+      - Catalog queries
+      - Detail views
+      - Manage operations
+      - Invite grants
+    end note
+  }
+
+  rectangle "INVESTOR" <<investor>> {
+    rectangle "PUBLIC + ACTIVE" <<public>> as public_link
+    rectangle "PRIVATE + invited" <<private>> as private_link
+    rectangle "Already contracted" as contracted_link
+
+    note right of public_link
+      Any authenticated investor
+      can discover and access
+      PUBLIC ACTIVE offerings
+    end note
+
+    note right of private_link
+      Only explicitly invited
+      investors can access
+      PRIVATE offerings
+
+      Invite grant required:
+      - identityHash match
+      - OR wallet address match
+      - Issued by contract creator
+    end note
+
+    note right of contracted_link
+      Investors who already
+      hold positions or have
+      active subscriptions
+      maintain access
+    end note
+  }
+}
+
+package "Enforcement Points" {
+  rectangle "Catalog Query" {
+    card "Filter by linkage" as catalog_filter
+    note right of catalog_filter
+      WHERE (tenant_id = ?)
+      AND (
+      -- SUPER_ADMIN path
+      (role = 'SUPER_ADMIN' AND created_by = user_id)
+      OR
+      -- INVESTOR path
+      (role = 'INVESTOR' AND (
+      (visibility = 'PUBLIC' AND status = 'ACTIVE')
+      OR (identity_hash IN invited_list)
+      OR (wallet IN contracted_list)
+      ))
+      )
+
+      Indexed on:
+      - (tenant_id, created_by, status)
+      - (tenant_id, status, visibility)
+      - (asset_id, identity_hash)
+      - (asset_id, wallet_address)
+    end note
+  }
+
+  rectangle "Detail Access" {
+    card "Re-validate linkage" as detail_check
+    note right of detail_check
+      Every GET /api/assets/{id}
+      re-checks linkage:
+
+      1. Resolve offering
+      2. Check role
+      3. Validate linkage rule
+      4. Return 403 MARKETPLACE_FORBIDDEN
+      if not linked (generic message)
+    end note
+  }
+
+  rectangle "Subscribe/Redeem" {
+    card "Triple validation" as subscribe_check
+    note right of subscribe_check
+      POST /api/assets/{id}/subscriptions
+      requires:
+
+      1. Linkage (same as catalog)
+      2. KYC (APPROVED + onChainVerified)
+      3. Business rules (min amount, etc)
+
+      All three must pass;
+      order optimizes for fast deny
+    end note
+  }
+}
+
+package "Anti-Patterns (Forbidden)" {
+  rectangle "Client Probes" #LightCoral {
+    card "Never escalate from params" as no_probe
+    note right of no_probe
+      BFF strips linkage-broadening
+      query parameters:
+
+      ✗ ?includePrivate=true
+      ✗ ?adminView=all
+      ✗ ?bypassLinkage=1
+
+      Backend independently validates
+      linkage from JWT context only
+    end note
+  }
+
+  rectangle "Existence Leaks" #LightCoral {
+    card "Generic deny responses" as generic_deny
+    note right of generic_deny
+      Non-linked private offerings:
+
+      ✗ "Offering XYZ is private"
+      ✗ "You are not invited"
+      ✗ 404 Not Found (implies existence)
+
+      ✓ 403 MARKETPLACE_FORBIDDEN
+      (same for missing and private)
+    end note
+  }
+}
+
+admin_link -[hidden]down-> public_link
+public_link -[hidden]down-> catalog_filter
+catalog_filter -[hidden]down-> no_probe
+
+@enduml
