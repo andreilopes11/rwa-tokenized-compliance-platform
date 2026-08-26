@@ -263,10 +263,10 @@ Targets: API 99.9%; p95 < 500 ms excl. chain; attest within 15 min of approve (S
 
 | Item                                                                                  | Status                                                         |
 | ------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **Two-role model (SUPER_ADMIN + INVESTOR); officer/auditor removed**                  | **Planned** (role refactor)                                    |
-| **Contract linkage enforced (admin `created_by`; investor public/invite/contracted)** | **Planned**                                                    |
-| **Consolidate `/compliance` + `/audit` into `/governance`**                           | **Planned**                                                    |
-| Auth role guard on every mutating route                                               | **Done** (interceptor + tests; matrix to retarget SUPER_ADMIN) |
+| **Two-role model (SUPER_ADMIN + INVESTOR); officer/auditor removed**                  | **Done**                                                       |
+| **Contract linkage enforced (admin `created_by`; investor public/invite/contracted)** | **Done** (Phase 5)                                             |
+| **Consolidate `/compliance` + `/audit` into `/governance`**                           | **Done**                                                       |
+| Auth role guard on every mutating route                                               | **Done**                                                       |
 | Pending-chain until receipt; no silent verify                                         | **Done**                                                       |
 | Marketplace JWT linkage + re-check on subscribe                                       | **Done**                                                       |
 | Per-contract suite + shared IR preferred                                              | **Done**                                                       |
@@ -276,9 +276,11 @@ Targets: API 99.9%; p95 < 500 ms excl. chain; attest within 15 min of approve (S
 | Password show/hide on all auth password fields                                        | **Done** (`PasswordInput`)                                     |
 | Auth without MFA/invite product UX                                                    | **Done**                                                       |
 | Forge security tests green                                                            | **Done**                                                       |
-| Cloud KMS EIP-155 signing (not stub)                                                  | **Remaining**                                                  |
-| External security audit                                                               | **Remaining**                                                  |
-| DR / HA PostgreSQL + runbooks                                                         | **Remaining**                                                  |
+| Prod rate limits (auth/sensitive/mutation) + readiness + Micrometer                   | **Done** (Phase 6)                                             |
+| Audit CSV export + structured logs + CORS HTTPS                                       | **Done** (Phase 6)                                             |
+| Cloud KMS EIP-155 signing (not stub)                                                  | **Remaining** (G8 Partial — fail-closed)                       |
+| External security audit                                                               | **Remaining** (G10)                                            |
+| DR / HA PostgreSQL + runbooks                                                         | **Partial** — runbooks + incident doc; restore drill pending   |
 | Mainnet deploy                                                                        | **N/A** until explicitly requested                             |
 
 **Must not:** RESTRICTED / invites / anonymous catalog / investor-created contracts / plaintext keys in repo / MFA-as-required product without based_rules update.
@@ -288,17 +290,17 @@ Targets: API 99.9%; p95 < 500 ms excl. chain; attest within 15 min of approve (S
 | Gate | Criterion                                                            | Result             | Evidence / notes                                            |
 | ---- | -------------------------------------------------------------------- | ------------------ | ----------------------------------------------------------- |
 | G1   | ERC-3643 / T-REX hooks; forge security green                         | **Pass**           | `npm run test:security`; shared IR tests                    |
-| G2   | Two-role RBAC (investor / super admin) + contract linkage            | **Planned**        | Retarget `ApiAuthorizationInterceptor` + tests to two roles |
+| G2   | Two-role RBAC (investor / super admin) + contract linkage            | **Pass**           | SUPER_ADMIN + INVESTOR; Phase 5 ownership/linkage E2E       |
 | G3   | KYC states; no silent `onChainVerified`                              | **Pass**           | `ComplianceApplicationServiceTest`                          |
 | G4   | Bounded oracle retry + ForceSync four-eyes                           | **Pass**           | Oracle retry + ForceSync tests                              |
-| G5   | Marketplace PUBLIC/PRIVATE + subscribe ACL                           | **Pass**           | Marketplace happy-path + ACL tests                          |
-| G6   | FE two workspaces (`/dashboard`, `/governance`) + BFF + Vitest gates | **Planned**        | Remove compliance/audit UI; retarget role chrome tests      |
-| G7   | Production: trex, Swagger off, no legacy admin token                 | **Pass**           | Production profile smoke                                    |
-| G8   | KMS/HSM signer path (env gate + fail-closed stub)                    | **Partial**        | Gate wired; EIP-155 cloud signing not done                  |
-| G9   | Ops: audit trail, `blockchain_transactions`, rate limits             | **Pass**           | ForceSync/oracle audits; rate-limit tests                   |
-| G10  | Mainnet / external audit / DR cutover                                | **N/A** / **Fail** | No mainnet; audit + DR not executed                         |
+| G5   | Marketplace PUBLIC/PRIVATE + subscribe ACL                           | **Pass**           | Phase 5 E2E + marketplace ACL tests                         |
+| G6   | FE two workspaces (`/dashboard`, `/governance`) + BFF + Vitest gates | **Pass**           | Investor + governance shells; Vitest                        |
+| G7   | Production: trex, Swagger off, CORS HTTPS, graceful shutdown         | **Pass**           | `ProductionProfileSmokeTest` + CORS validator               |
+| G8   | KMS/HSM signer path (env gate + fail-closed stub)                    | **Partial**        | Fail-closed gate; EIP-155 cloud signing not done            |
+| G9   | Ops: audit CSV, metrics, readiness, rate limits, logs                | **Pass**           | Phase 6 meters + CSV export + auth/mutation limits          |
+| G10  | Mainnet / external audit / DR cutover                                | **Pending**        | Runbooks + incident doc; restore/external audit not run     |
 
-**Blockers before mainnet:** G8 EIP-155 KMS; G10 external audit + DR; production PostgreSQL RLS evidence where Docker unavailable.
+**Blockers before mainnet:** G8 EIP-155 KMS; G10 external audit + DR restore evidence. See `Execution Guide/scripts/phase6-readiness.md`.
 
 ---
 
